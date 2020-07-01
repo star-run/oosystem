@@ -33,7 +33,8 @@ function createWindow() {
     accountlist = JSON.parse(data.trim())
     setTimeout(()=>{
       mainWindow.webContents.send('accounts-pre',JSON.stringify(accountlist))
-    },2000)
+      console.log('accounts-pre event is already be trigger')
+    },3000)
   })
   
   wins.mainWindow = mainWindow
@@ -110,7 +111,11 @@ ipcMain.on('want-to-login', (event, data) => {
     res.on('end', function () {
       let result = JSON.parse(_data)
       if(result.success){
-        
+        if(!result.passwordTrue){
+          event.reply('password-error')
+          return
+        }
+
         let shouldtofile = {
           account:data.account,
           password:data.password,
@@ -126,7 +131,7 @@ ipcMain.on('want-to-login', (event, data) => {
           fs.writeFile('./accounts.oo',JSON.stringify(accountlist),(err,data)=>{})
         }
       }
-      event.reply('login-result',result)
+      event.reply('login-success',result)
     });
   });
   requesHandle = req
@@ -141,6 +146,10 @@ ipcMain.on('cancel-login',(event,data)=>{
 ipcMain.on('show-soft-keyboard',(event,data)=>{
   exec('osk.exe')
 });
+
+ipcMain.on('login-hidden',(event,data)=>{
+  wins.mainWindow.minimize()
+})
 
 class Tools{
   static isexist(arr,value,propname=null){

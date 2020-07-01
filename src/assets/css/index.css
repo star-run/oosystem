@@ -273,3 +273,13 @@
         transform: scaleY(0);
     }
 }
+
+@keyframes loginsuccess{
+    0%{
+        transform: scale(1);
+    }
+
+    100%{
+        transform: scale(0);
+    }
+}
