@@ -74,7 +74,7 @@ ipcMain.on('user_min', () => {
 })
 
 ipcMain.on('to-sign-up', () => {
-  shell.openExternal('http://localhost:9081/page/signup')
+  shell.openExternal('http://www.yjxyjx.club:9081/page/signup')
 })
 
 let requesHandle
@@ -93,7 +93,7 @@ ipcMain.on('want-to-login', (event, data) => {
   var content = qs.stringify(data);
 
   var options = {
-    host: 'localhost',
+    host: 'www.yjxyjx.club',
     port: 9081,
     path: '/submit/loginin',
     method: 'POST',
