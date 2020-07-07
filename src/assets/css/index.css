@@ -11,6 +11,7 @@
     top:300px;
     left:400px;
     height:360px;
+    display: hidden;
 }
 
 .obvious_container{

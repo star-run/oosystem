@@ -1,5 +1,5 @@
 // Modules to control application life and create native browser window
-const { app, BrowserWindow, ipcMain, shell} = require('electron')
+const { app, BrowserWindow, ipcMain, shell,screen,Menu,Tray} = require('electron')
 const fs = require('fs')
 const exec = require('child_process').exec
 let wins = {}
@@ -8,9 +8,10 @@ let accountlist
 
 const path = require('path')
 
+let CurrentScreen;
 function createWindow() {
   // Create the browser window.
-  const mainWindow = new BrowserWindow({
+  const loginWindow = new BrowserWindow({
     transparent: true,
     frame: false,
     width: 430,
@@ -22,9 +23,14 @@ function createWindow() {
     }
   })
 
-  // mainWindow.setIgnoreMouseEvents(true)
-  // and load the index.html of the app.
-  mainWindow.loadFile('login.html')
+  CurrentScreen = {
+    screenWidth:screen.getPrimaryDisplay().workAreaSize.width,
+    screenHeight:screen.getPrimaryDisplay().workAreaSize.height
+  }
+
+  // loginWindow.setIgnoreMouseEvents(true)
+  loginWindow.loadFile('login.html')
+ 
   fs.readFile('./accounts.oo','utf-8',(err,data)=>{
     if(data.trim().length == 0){
       accountlist = []
@@ -32,15 +38,15 @@ function createWindow() {
     }
     accountlist = JSON.parse(data.trim())
     setTimeout(()=>{
-      mainWindow.webContents.send('accounts-pre',JSON.stringify(accountlist))
+      loginWindow.webContents.send('accounts-pre',JSON.stringify(accountlist))
       console.log('accounts-pre event is already be trigger')
-    },3000)
+    },2000)
   })
   
-  wins.mainWindow = mainWindow
+  wins.loginWindow = loginWindow
   
   // Open the DevTools.
-  // mainWindow.webContents.openDevTools()
+  // loginWindow.webContents.openDevTools()
 }
 
 // This method will be called when Electron has finished
@@ -70,15 +76,26 @@ ipcMain.on('user_exit', () => {
   app.quit()
 })
 
+let appTray = null; 
+
 ipcMain.on('user_min', () => {
-  wins.mainWindow.minimize()
+  // wins.loginWindow.minimize()
+  
+  Tools.setCustomTray(wins.loginWindow,[
+    {
+      "label":'退出',
+      click(){
+        app.quit()
+      }
+    }
+  ],true)
 })
 
 ipcMain.on('to-sign-up', () => {
   shell.openExternal('http://www.yjxyjx.club:9081/page/signup')
 })
 
-let requesHandle
+let requesHandle;
 
 ipcMain.on('want-to-login', (event, data) => {
   data = JSON.parse(data)
@@ -132,6 +149,25 @@ ipcMain.on('want-to-login', (event, data) => {
         }
       }
       event.reply('login-success',result)
+      
+      wins.mainWindow = new BrowserWindow({
+        frame: false,
+        width: 300,
+        height: 600,
+        transparent:true,
+        show:false,
+        webPreferences: {
+          preload: path.join(__dirname, 'preload.js'),
+          nodeIntegration: true
+        }
+      })
+
+      Tools.setWindowPosition(wins.mainWindow,-100,0)
+      wins.mainWindow.loadFile('./src/html/oobody.html')
+      wins.mainWindow.show()
+      wins.mainWindow.on('resize',()=>{
+        wins.mainWindow.webContents.send('oobody-resize',wins.mainWindow.getSize())
+      })
     });
   });
   requesHandle = req
@@ -148,7 +184,21 @@ ipcMain.on('show-soft-keyboard',(event,data)=>{
 });
 
 ipcMain.on('login-hidden',(event,data)=>{
-  wins.mainWindow.minimize()
+  wins.loginWindow.close()
+})
+
+
+
+ipcMain.on('oobody-show',()=>{
+  console.log('oobody-show')
+})
+
+ipcMain.on('oobody-move',(event,options)=>{
+  let bound = wins.mainWindow.getBounds()
+  wins.mainWindow.setBounds({
+    x:bound.x + options.x,
+    y:bound.y + options.y
+  })
 })
 
 class Tools{
@@ -214,5 +264,52 @@ class Tools{
         }
       }
     }
+  }
+
+  static setCustomTray(win,trayMenuTemplate,ishidden){
+    if(!trayMenuTemplate){
+      trayMenuTemplate = [{     // 系统托盘图标目录 -----***可替换
+        label: '退出',
+        click: function () {
+            app.quit();
+        }
+      }];
+    }
+    
+    // 当前目录下的app.ico图标
+    let iconPath = path.join(__dirname, './src/assets/img/icon/login/logo.png');//-----***可替换
+    appTray = new Tray(iconPath);
+    // 图标的上下文菜单
+    const contextMenu = Menu.buildFromTemplate(trayMenuTemplate);
+    // 隐藏主窗口
+    if(ishidden){
+      win.hide();
+    }
+    // 设置托盘悬浮提示
+    appTray.setToolTip('OO');
+    // 设置托盘菜单
+    appTray.setContextMenu(contextMenu);
+    // 单击托盘小图标显示应用
+    appTray.on('click', function(){
+        // 显示当前窗口
+        if(ishidden){
+          win.show();
+        }
+        // 关闭托盘显示
+        appTray.destroy();
+    });
+  }
+
+  static setWindowPosition(win,x,y){
+    let baseX,baseY
+    let [w,h] = win.getSize()
+    baseX = (x < 0)?CurrentScreen.screenWidth-w:x
+    baseY = (y < 0)?CurrentScreen.screenHeight-h:y
+
+    let options = {
+      x:baseX + x,
+      y:baseY + y
+    }
+    win.setBounds(options)
   }
 }

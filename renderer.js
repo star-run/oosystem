@@ -11,8 +11,17 @@ let win = require('electron').remote.getCurrentWindow()
 let body = document.getElementById('login-block')
 
 let dragstart = false
-let offsetx = 400;
-let offsety = 300;
+
+let screenWidth = screen.availWidth
+let screenHeight = screen.availHeight
+
+let offsetx = parseInt((screenWidth - 430)/2);
+let offsety = parseInt((screenHeight - 330)/2);
+
+
+document.getElementById('login-block').style.left = offsetx + 'px'
+document.getElementById('login-block').style.top = offsety + 'px'
+document.getElementById('login-block').style.display = 'block'
 
 body.addEventListener('mouseleave', () => {
     win.setIgnoreMouseEvents(true, { forward: true })
